@@ -38,18 +38,22 @@ def recognize(models: dict, test_set: SinglesData):
         for word in all_words:
             try:
                 logL = models[word].score(X, length)
-                print(test_key, logL)
+                # print(test_key, logL)
             except:
-                logL = float('inf')
+                # logL = float('inf')
+                logL = float('-inf')
             prob_dict[word] = logL 
         # find the best guess among all the probs
-        best_logL = float('inf')
+        # best_logL = float('inf')
+        best_logL = float('-inf')
         best_guess = None
         for word, logL in prob_dict.items():
-            if logL < best_logL:
+            # print(word, logL)
+            if logL > best_logL:
                 best_logL = logL 
                 best_guess = word
         probabilities.append(prob_dict)
         guesses.append(best_guess)
+        # print(best_guess)
 
     return (probabilities, guesses)

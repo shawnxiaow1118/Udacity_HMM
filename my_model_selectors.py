@@ -87,25 +87,28 @@ class SelectorBIC(ModelSelector):
 		# TODO implement model selection based on BIC scores
 		for n_components in range(self.min_n_components, self.max_n_components + 1):
 			temp_model = self.base_model(n_components)
-			# likelihood logL
-			logL = temp_model.score(self.X, self.lengths)
-			# compute the parameters for transition matrix
-			# for each state (not the final state), there will be two free parameters
-			p1 = n_components * 2 - 1
-			# compute the parameters for emission matrix
-			# for each feature there will be two variables (mean, std)
-			len_feat = len(self.X[0])
-			p2 = len_feat * 2 * n_components
-			# number of data points
-			N = len(self.X)
-			# print(N, p1+p1, logL)
+			try:
+				# likelihood logL
+				logL = temp_model.score(self.X, self.lengths)
+				# compute the parameters for transition matrix
+				# for each state (not the final state), there will be two free parameters
+				p1 = n_components * 2 - 1
+				# compute the parameters for emission matrix
+				# for each feature there will be two variables (mean, std)
+				len_feat = len(self.X[0])
+				p2 = len_feat * 2 * n_components
+				# number of data points
+				N = len(self.X)
+				# print(N, p1+p1, logL)
 
-			# BIC
-			BIC = -2 * logL + (p1 + p2) * math.log(N)
-			print(n_components, BIC, best_num_components)
-			if BIC < best_BIC:
-				best_BIC = BIC 
-				best_num_components = n_components
+				# BIC
+				BIC = -2 * logL + (p1 + p2) * math.log(N)
+				# print(n_components, BIC, best_num_components)
+				if BIC < best_BIC:
+					best_BIC = BIC 
+					best_num_components = n_components
+			except:
+				continue
 		return self.base_model(best_num_components)
 
 
@@ -121,7 +124,7 @@ class SelectorDIC(ModelSelector):
 
 	def select(self):
 		warnings.filterwarnings("ignore", category=DeprecationWarning)
-		print(self.this_word)
+		# print(self.this_word)
 
 		# TODO implement model selection based on DIC scores
 		best_DIC = float('-inf')
@@ -143,7 +146,7 @@ class SelectorDIC(ModelSelector):
 				# print(logL_self, logL_ave, num_words)
 				# compute the DIC
 				DIC = logL_self - logL_ave / (num_words - 1.0)
-				print(n_components, DIC)
+				# print(n_components, DIC)
 
 				if DIC > best_DIC:
 					best_DIC = DIC 
@@ -151,7 +154,7 @@ class SelectorDIC(ModelSelector):
 			except:
 				# return self.base_model(best_num_components)
 				continue
-		print(best_num_components, best_DIC)
+		# print(best_num_components, best_DIC)
 		return self.base_model(best_num_components)
 
 
@@ -162,7 +165,7 @@ class SelectorCV(ModelSelector):
 
 	def select(self):
 		warnings.filterwarnings("ignore", category=DeprecationWarning)
-		print(self.this_word)
+		# print(self.this_word)
 		if len(self.lengths) < 3:
 			# too small samples, no need for CV selector, use DIC instead
 			return SelectorDIC(self.words, self.hwords, self.this_word).select()
@@ -174,19 +177,22 @@ class SelectorCV(ModelSelector):
 
 			split_method = KFold()
 			tol_logL = 0
-			for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
-				# print("Train fold indices:{} Test fold indices:{}".format(cv_train_idx, cv_test_idx)) 
-				train_X, train_lengths = combine_sequences(cv_train_idx, self.sequences)
-				test_X, test_lengths = combine_sequences(cv_test_idx, self.sequences)
-				# print(len(train_lengths) + len(test_lengths))
-				hmm_model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
-                                    random_state=self.random_state, verbose=False).fit(train_X, train_lengths)
-				tol_logL += hmm_model.score(test_X, test_lengths)
+			try:
+				for cv_train_idx, cv_test_idx in split_method.split(self.sequences):
+					# print("Train fold indices:{} Test fold indices:{}".format(cv_train_idx, cv_test_idx)) 
+					train_X, train_lengths = combine_sequences(cv_train_idx, self.sequences)
+					test_X, test_lengths = combine_sequences(cv_test_idx, self.sequences)
+					# print(len(train_lengths) + len(test_lengths))
+					hmm_model = GaussianHMM(n_components=n_components, covariance_type="diag", n_iter=1000,
+	                                    random_state=self.random_state, verbose=False).fit(train_X, train_lengths)
+					tol_logL += hmm_model.score(test_X, test_lengths)
 
-			if tol_logL < best_logL:
-				best_logL = tol_logL 
-				best_num_components = n_components
-			print(tol_logL, n_components)
+				if tol_logL < best_logL:
+					best_logL = tol_logL 
+					best_num_components = n_components
+				# print(tol_logL, n_components)
+			except:
+				continue
 
 		return self.base_model(best_num_components)
 
