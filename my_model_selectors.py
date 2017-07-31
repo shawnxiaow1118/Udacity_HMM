@@ -172,7 +172,7 @@ class SelectorCV(ModelSelector):
 
 		# TODO implement model selection using CV
 		best_num_components = 0
-		best_logL = float('inf')
+		best_logL = float('-inf')
 		for n_components in range(self.min_n_components, self.max_n_components + 1):
 
 			split_method = KFold()
@@ -187,7 +187,7 @@ class SelectorCV(ModelSelector):
 	                                    random_state=self.random_state, verbose=False).fit(train_X, train_lengths)
 					tol_logL += hmm_model.score(test_X, test_lengths)
 
-				if tol_logL < best_logL:
+				if tol_logL > best_logL:
 					best_logL = tol_logL 
 					best_num_components = n_components
 				# print(tol_logL, n_components)
